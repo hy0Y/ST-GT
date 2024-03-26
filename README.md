@@ -1,2 +1,1 @@
-# ST-GT
-Compositional Video Understanding with Spatiotemporal Structure-based Transformers (CVPR 2024)
+# Compositional Video Understanding with Spatiotemporal Structure-based Transformers (CVPR 2024)
