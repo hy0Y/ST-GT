@@ -1,0 +1,8 @@
+split_dir: ${path.split_dir}
+bbox_dir: ${path.bbox_dir}
+feat_dir: ${path.feat_dir}
+metadata_dir: ${path.metadata_dir}
+target_dir: ${path.target_dir}
+
+num_class: ${num_class}
+FPC: 8

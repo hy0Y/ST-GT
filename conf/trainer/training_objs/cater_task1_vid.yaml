@@ -1,0 +1,7 @@
+_target_: loss.loss_fn.MultipleTrainingObjectives
+device: null
+output_keys: ['vid_action']
+loss_weights: [1]
+loss_funcs:
+  - _target_: torch.nn.MultiLabelSoftMarginLoss
+_recursive_: True

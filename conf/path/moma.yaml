@@ -1,0 +1,17 @@
+# split
+split_dir: /${data_root_dir}/moma/splits
+
+# graph
+graph_dir: /${data_root_dir}/moma/graph
+
+# preproc - bbox
+bbox_dir: /${data_root_dir}/moma/preproc/bbox
+
+# preproc - feature
+feat_dir: /${data_root_dir}/moma/preproc/feature
+
+# preproc - metadata
+metadata_dir: /${data_root_dir}/moma/preproc/metadata
+
+# preproc - target
+target_dir : /${data_root_dir}/moma/preproc/target

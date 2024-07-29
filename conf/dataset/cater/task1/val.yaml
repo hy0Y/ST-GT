@@ -1,0 +1,6 @@
+_target_: dataset.get_loader
+mode: val
+batch_size: 1
+num_workers: ${dataset.num_workers}
+shuffle: ${dataset.shuffle}
+_recursive_: False

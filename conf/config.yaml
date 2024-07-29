@@ -1,0 +1,62 @@
+proj_name: your project name
+run_name: your run name
+seed: 503
+trainer_mode: 'train_eval'
+use_edm: False
+
+# your root data directory
+data_root_dir: /data/deploy
+
+dataset:
+  choice: None  # overrided by each exp config
+  num_workers: 6
+  shuffle: False
+
+model:
+  transformer_dim: None  # overrided by each exp config
+  
+trainer:
+  num_epochs: 400
+  batch_size: 8
+  learning_rate: 0.0001
+
+checkpoint: 
+  save_ckpt: False
+  save_every: 1
+  save_min: 0
+  save_dir : ${hydra:runtime.cwd}/ckpt/${run_name}
+
+test:
+  model_ckpt_pth: None
+
+defaults:
+  # path selection
+  - path: cater
+
+  # graph feature selection
+  - feature@node_feature: cater/glvwiki_shape_200
+
+  # dataset-wise config selection
+  - dataset: cater_dataset_cfg
+
+  # train mode selection
+  - dataset@dataset_train: cater/task2/train
+  - dataset@dataset_val: cater/task2/val
+  - dataset@dataset_test: cater/task2/test
+
+  # model selection
+  - model/graph_tokenizer: tokenizer_cater
+  - model/graph_transformer: stgt_cater_task2
+  - model/classifiers: embedding_disentangling_module_task2
+
+  # trainer selection
+  - trainer/optimizer: adam
+  - trainer/scheduler: unselected
+  - trainer/training_objs: cater_task2_comp
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d_%H-%M-%S}
+  job_logging:
+    level: INFO
+  output_subdir: outputs

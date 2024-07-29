@@ -1,0 +1,12 @@
+split_dir: ${path.split_dir}
+feat_dir: ${path.feat_dir}/${node_feature.dir_name}
+dof_dir: ${path.dof_dir}
+metadata_dir: ${path.metadata_dir}
+target_dir: ${path.target_dir}
+
+attr_dim: ${node_feature.total_dim}
+use_edm: ${use_edm}
+
+task: ${task}
+edge_dist: 1.5
+num_clips: 10

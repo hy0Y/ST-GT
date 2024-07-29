@@ -1,0 +1,23 @@
+# split
+split_dir: /${data_root_dir}/cater/splits
+
+# graph
+graph_dir: /${data_root_dir}/cater/graph
+
+# preproc - dof
+dof_dir: /${data_root_dir}/cater/preproc/dof
+
+# preproc - feature
+feat_dir: /${data_root_dir}/cater/preproc/feature
+
+# preproc - log
+log_dir: /${data_root_dir}/cater/preproc/log
+
+# preproc - metadata
+metadata_dir: /${data_root_dir}/cater/preproc/metadata
+
+# preproc - metadata - edm_map
+edm_map_pth: ${path.metadata_dir}/edm_map.npy
+
+# preproc - target
+target_dir : /${data_root_dir}/cater/preproc/target

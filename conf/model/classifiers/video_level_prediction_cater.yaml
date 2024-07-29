@@ -1,0 +1,4 @@
+_target_: model.modules.classifiers.MeanPoolMLP
+in_features: ${model.transformer_dim}
+out_features: ${num_class}
+nlayers: 3

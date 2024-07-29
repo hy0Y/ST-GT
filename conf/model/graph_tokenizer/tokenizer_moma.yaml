@@ -1,0 +1,21 @@
+# null values will be updated in running time
+_target_: model.modules.graph_tokenizers.MomaGraphTokenizer
+
+# each feature's input dimension
+inp_attr_dim: 384
+inp_bbox_dim: 4
+inp_time_dim: None
+inp_n_id_dim: 1200
+inp_t_id_dim: None
+
+# each feature's final dimension (after concatenation)
+out_attr_dim: 128
+out_bbox_dim: 128
+out_time_dim: 128
+out_n_id_dim: 128
+out_t_id_dim: None
+
+out_dim: ${sum_all:${.out_attr_dim},${.out_bbox_dim},${.out_time_dim},${.out_n_id_dim}}
+
+device: null
+

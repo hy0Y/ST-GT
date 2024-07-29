@@ -1,0 +1,6 @@
+_target_: dataset.get_loader
+mode: train
+batch_size: ${trainer.batch_size}
+num_workers: ${dataset.num_workers}
+shuffle: ${dataset.shuffle}
+_recursive_: False

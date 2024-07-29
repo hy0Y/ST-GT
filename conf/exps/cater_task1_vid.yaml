@@ -1,0 +1,33 @@
+# @package _global_
+
+task: atomic
+num_class: 14
+
+dataset:
+  choice: cater
+
+model:
+  transformer_dim: 128
+
+defaults:
+  # path selection
+  - override /path: cater
+
+  # graph feature selection
+  - override /feature@node_feature: cater/glvwiki_shape_200
+
+  - override /dataset: cater_dataset_cfg
+
+  # train mode selection
+  - override /dataset@dataset_train: cater/task1/train
+  - override /dataset@dataset_val: cater/task1/val
+  - override /dataset@dataset_test: cater/task1/test
+
+  # model selection
+  - override /model/graph_tokenizer: tokenizer_cater
+  - override /model/graph_transformer: stgt_cater_task1
+  - override /model/classifiers: video_level_prediction_cater
+
+  # trainer selection
+  - override /trainer/training_objs: cater_task1_vid
+  

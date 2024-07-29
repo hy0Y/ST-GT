@@ -1,0 +1,10 @@
+_target_: model.modules.classifiers.EDM_task2
+
+input_dim: ${model.transformer_dim}
+num_object: 5
+num_action: 4
+num_temporal_relations: 3
+act_threshold: 0.5
+embed_dim: 64
+comp_map_pth: ${path.edm_map_pth}
+num_classes: ${num_class}

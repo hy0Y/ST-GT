@@ -1,0 +1,34 @@
+# @package _global_
+
+num_class: 91
+
+trainer:
+  batch_size: 2
+
+dataset:
+  choice: moma
+
+model:
+  transformer_dim: 128
+
+defaults:
+  # path selection
+  - override /path: moma
+
+  # graph feature selection
+  - override /feature@node_feature: moma/glvwiki_concat_200
+
+  - override /dataset: moma_dataset_cfg
+
+  # train mode selection
+  - override /dataset@dataset_train: moma/train
+  - override /dataset@dataset_val: moma/val
+  - override /dataset@dataset_test: moma/test
+
+  # model selection
+  - override /model/graph_tokenizer: tokenizer_moma
+  - override /model/graph_transformer: stgt_moma
+  - override /model/classifiers: video_level_prediction_moma
+
+  # trainer selection
+  - override /trainer/training_objs: moma_vid

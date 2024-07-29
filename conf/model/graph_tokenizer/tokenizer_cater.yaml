@@ -1,0 +1,20 @@
+# null values will be updated in running time
+_target_: model.modules.graph_tokenizers.CaterGraphTokenizer
+
+# each feature's input dimension
+inp_attr_dim: ${node_feature.total_dim}
+inp_coor_dim: 12
+inp_time_dim: None
+inp_n_id_dim: None
+inp_t_id_dim: None
+
+# each feature's final dimension (after concatenation)
+out_attr_dim: 128
+out_coor_dim: 128
+out_time_dim: 128
+out_n_id_dim: 600
+out_t_id_dim: None
+
+out_dim: ${sum_all:${.out_attr_dim},${.out_coor_dim},${.out_time_dim},${.out_n_id_dim}}
+
+device: null

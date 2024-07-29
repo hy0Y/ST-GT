@@ -1,0 +1,21 @@
+# null values will be updated in running time
+_target_: model.modules.graph_transformers.SpatioTemporalGraphTransformer_W_OOVD
+
+device: null
+num_action: 4
+num_object: 5
+
+input_dim: ${model.graph_tokenizer.out_dim}
+hidden_dim: ${model.transformer_dim}  # 320
+
+# encoder
+encoder_layers: 2
+encoder_heads: 4
+encoder_use_cache: False
+encoder_max_position_embeddings: 1024
+
+# decoder
+decoder_layers: 3
+decoder_heads: 8
+decoder_use_cache: False
+

@@ -1,0 +1,32 @@
+# @package _global_
+
+task: composite
+num_class: 301
+
+dataset:
+  choice: cater
+
+model:
+  transformer_dim: 128
+
+defaults:
+  # path selection
+  - override /path: cater
+
+  # graph feature selection
+  - override /feature@node_feature: cater/glvwiki_shape_200
+
+  - override /dataset: cater_dataset_cfg
+
+  # train mode selection
+  - override /dataset@dataset_train: cater/task2/train
+  - override /dataset@dataset_val: cater/task2/val
+  - override /dataset@dataset_test: cater/task2/test
+
+  # model selection
+  - override /model/graph_tokenizer: tokenizer_cater
+  - override /model/graph_transformer: stgt_cater_task2
+  - override /model/classifiers: video_level_prediction_cater
+
+  # trainer selection
+  - override /trainer/training_objs: cater_task2_vid
