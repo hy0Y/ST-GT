@@ -1,7 +1,7 @@
 # Spatiotemporal Graph Transformer(STGT)
 
 This is an official PyTorch Implementation of **Compositional Video Understanding with Spatiotemporal Structure-based Transformers (CVPR 2024)** [Paper Link](https://openaccess.thecvf.com/content/CVPR2024/html/Yun_Compositional_Video_Understanding_with_Spatiotemporal_Structure-based_Transformers_CVPR_2024_paper.html)
-[Project Page](https://wasabipretzel.github.io/ST-GT_project/)
+, [Project Page](https://wasabipretzel.github.io/ST-GT_project/)
 ![](fig.png)
 
 ## Data & Compositional Generalization Split
