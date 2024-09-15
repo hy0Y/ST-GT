@@ -5,7 +5,7 @@ trainer_mode: 'train_eval'
 use_edm: False
 
 # your root data directory
-data_root_dir: /data/deploy
+data_root_dir: ${hydra:runtime.cwd}/../data
 
 dataset:
   choice: None  # overrided by each exp config
@@ -52,11 +52,12 @@ defaults:
   # trainer selection
   - trainer/optimizer: adam
   - trainer/scheduler: unselected
+  - trainer/wandb: unselected
   - trainer/training_objs: cater_task2_comp
 
 hydra:
   run:
-    dir: outputs/${now:%Y-%m-%d_%H-%M-%S}
+    dir: ${hydra:runtime.cwd}/../outputs/${now:%Y-%m-%d_%H-%M-%S}
   job_logging:
     level: INFO
   output_subdir: outputs

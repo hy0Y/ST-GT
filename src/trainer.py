@@ -50,6 +50,12 @@ class Trainer:
             optimizer=self.optimizer, 
             steps_per_epoch=len(self.train_loader),
         )
+
+        # initialize wandb
+        self.wandb = hydra.utils.instantiate(
+            cfg.trainer.wandb,
+            model=self.model
+        )
         
         # logging requirements
         if self.cfg.dataset.choice == 'cater': self.cater_load_mapping(log_dir=cfg.path.log_dir)
@@ -87,7 +93,7 @@ class Trainer:
             
             # validation
             with torch.no_grad():
-                logging.info(f'epoch : {epoch} | validation')
+                logging.info(f'epoch : {epoch} | Validation')
                 self.model.eval()
                 self.loss_funcs.reset_per_epoch(is_eval=True)
                 y, y_h, y_s, val_ap = [], [], [], []
@@ -232,6 +238,24 @@ class Trainer:
         logging.info(f'mAP : {val_ap[val_ap != -1.].mean()}')
         logging.info('-------------------------------------------')
         
+        if not self.wandb: return None
+
+        if dtset == 'cater':
+            self.wandb.log({
+                **train_logging_msg,
+                **val_logging_msg,
+                **act2ap,
+                **{'lr' : self.optimizer.param_groups[0]['lr']},
+                **{'mAP' : val_ap[val_ap != -1.].mean()}
+            }, step=epoch)
+        else:
+            self.wandb.log({
+                **{'TRAIN EPOCH LOSS' : train_losses['train_epoch_loss'],
+                   'VALID EPOCH LOSS' : val_losses['val_epoch_loss'],
+                   'mAP'              : val_ap[val_ap != -1.].mean(),
+                   'lr'               : self.optimizer.param_groups[0]['lr'],
+            }}, step=epoch)    
+
     def cater_load_mapping(self, log_dir):
         aa_map_fname = 'AA_map.json'
         aa_map_pth = os.path.join(log_dir, aa_map_fname)

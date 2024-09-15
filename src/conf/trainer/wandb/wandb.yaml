@@ -1,0 +1,4 @@
+_target_: utils.misc.get_wandb
+project_name: ${proj_name}
+run_name: ${run_name}
+model: null

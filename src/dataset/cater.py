@@ -17,6 +17,9 @@ TYPE_N = 0
 TYPE_SE = 1
 TYPE_TE = 2
 
+NUM_CLIPS = 10
+FPC = 30
+
 class CaterDataset(torch.utils.data.Dataset):
     def __init__(
             self, 
@@ -180,30 +183,43 @@ class CaterDataset(torch.utils.data.Dataset):
             coord_feat.append(coord_feat_clip)  # clip당  1, T(본인clip의 token 수), 24
         
         # node identifier's idx
-        clip_len = 30   # NOTE scalibility
-        idx_in_adj = []
+        idx_in_lookup = []
         for clip_idx, (clip_token_pair_idx, clip_token_pair_time) in enumerate(zip(token_pair_idx, token_pair_time)):
             nidx_in_clip = torch.Tensor(clip_token_pair_idx) - 1             # 536, 2
-            tidx_in_clip = torch.Tensor(clip_token_pair_time) % clip_len     # 536, 2
+            tidx_in_clip = torch.Tensor(clip_token_pair_time) % FPC     # 536, 2
             idx_in_adj_clip = nidx_in_clip + num_objs * tidx_in_clip
-            idx_in_adj.append(idx_in_adj_clip)
+            idx_in_lookup.append(idx_in_adj_clip)
 
-        # laplacian's eigen vectors [clip1's eigvec(270 x 270), clip2's eigvec, ... clip10's eigvec]
-        adj_pth = os.path.join(
-            self.dataset_cfg.metadata_dir,
-            f'ED_{self.dataset_cfg.edge_dist}_NC_{self.dataset_cfg.num_clips}',
-            'adj_matrix',
-            f'{vid}.npy'
-        )
-        adj_mats = torch.from_numpy(np.load(adj_pth)) # num_clips, #obj * ts, #obj * ts
-        lap_eigens = []
-        n_node = adj_mats.shape[1]
-        for clip_idx in range(adj_mats.shape[0]):
-            adj_clip = adj_mats[clip_idx]
-            in_degree_clip = adj_clip.long().sum(dim=1).view(-1)
-            EigVec, _ = lap_eig(adj_clip, n_node, in_degree_clip)   # 각 row가 대응하는 eigvec
-            lap_eigens.append(EigVec.unsqueeze(0))
-        lap_eigens = torch.cat(lap_eigens, dim=0)
+
+        '''
+            As position encoding for graphs, two options are considered
+                option 1: the eigenvectors of the graph Laplacian matrix
+                option 2: the Q matrix from a random Gaussian matrix.
+
+            ref: https://arxiv.org/pdf/2207.02505 
+        '''
+        # NOTE option 1 
+        # # laplacian's eigen vectors [clip1's eigvec(270 x 270), clip2's eigvec, ... clip10's eigvec]
+        # adj_pth = os.path.join(
+        #     self.dataset_cfg.metadata_dir,
+        #     f'ED_{self.dataset_cfg.edge_dist}_NC_{self.dataset_cfg.num_clips}',
+        #     'adj_matrix',
+        #     f'{vid}.npy'
+        # )
+        # adj_mats = torch.from_numpy(np.load(adj_pth)) # num_clips, #obj * ts, #obj * ts
+        # n_ids = []
+        # n_node = adj_mats.shape[1]
+        # for clip_idx in range(adj_mats.shape[0]):
+        #     adj_clip = adj_mats[clip_idx]
+        #     in_degree_clip = adj_clip.long().sum(dim=1).view(-1)
+        #     EigVec, _ = lap_eig(adj_clip, n_node, in_degree_clip)   # 각 row가 대응하는 eigvec
+        #     n_ids.append(EigVec.unsqueeze(0))
+        # n_ids = torch.cat(n_ids, dim=0)
+
+        # NOTE option 2 
+        RG = torch.randn(NUM_CLIPS, num_objs * FPC, num_objs * FPC)
+        Q, _ = torch.linalg.qr(RG)
+        n_ids = Q
         
         target_vid_action = self.vid2target_vid_action[vid]
         
@@ -219,7 +235,7 @@ class CaterDataset(torch.utils.data.Dataset):
         token_types = pad_sequence(token_types, batch_first=True, padding_value=0)
         pad_mask = pad_sequence(pad_mask, batch_first=True, padding_value=0)
         coord_feat = pad_sequence(coord_feat, batch_first=True, padding_value=0)
-        idx_in_adj = pad_sequence(idx_in_adj, batch_first=True, padding_value=0)
+        idx_in_lookup = pad_sequence(idx_in_lookup, batch_first=True, padding_value=0)
 
         data = {
             ### metadata    
@@ -235,8 +251,9 @@ class CaterDataset(torch.utils.data.Dataset):
             'attr_feats'      : attr_feats,         # torch.Tensor of shape num_obj + 1, 200     -> per video
             'coord_feat'      : coord_feat,         # torch.Tensor of shape [10, 651, 24]        -> per clip
 
-            'idx_in_adj'      : idx_in_adj,         # torch.Tensor of shape [10, 651, 2]         -> per clip
-            'lap_eigens'      : lap_eigens,         # torch.Tensor of shape [10, 270, 270]       -> per clip
+            'idx_in_lookup'      : idx_in_lookup,         # torch.Tensor of shape [10, 651, 2]         -> per clip
+            # 'lap_eigens'      : lap_eigens,         # torch.Tensor of shape [10, 270, 270]       -> per clip
+            'node_ids'        : n_ids,              # torch.Tensor of shape [10, 270, 270]       -> per clip
 
             ### targets
             'target_vid_action' : torch.Tensor(target_vid_action),
@@ -267,8 +284,8 @@ class CaterDataset(torch.utils.data.Dataset):
         b_attr_feats = [data['attr_feats'] for data in batch]
         b_coord_feat = [data['coord_feat'] for data in batch]
 
-        b_idx_in_adj = [data['idx_in_adj'] for data in batch]
-        b_lap_eigens = [data['lap_eigens'] for data in batch]
+        b_idx_in_lookup = [data['idx_in_lookup'] for data in batch]
+        b_node_ids = [data['node_ids'] for data in batch]
 
         # target
         b_tgt_vid_action_l = [data['target_vid_action'] for data in batch]
@@ -284,8 +301,8 @@ class CaterDataset(torch.utils.data.Dataset):
         p_token_types = torch.zeros(B, NC, MAX_TOKEN_LEN)
         p_pad_mask = torch.zeros(B, NC, MAX_TOKEN_LEN)
         p_coord_feat = torch.zeros(B, NC, MAX_TOKEN_LEN, 24)
-        p_idx_in_adj = torch.zeros(B, NC, MAX_TOKEN_LEN, 2)
-        p_lap_eigens = torch.zeros(B, NC, 300, 300) # NOTE temporally 
+        p_idx_in_lookup = torch.zeros(B, NC, MAX_TOKEN_LEN, 2)
+        p_node_ids = torch.zeros(B, NC, 300, 300) # NOTE temporally 
 
         if self.dataset_cfg.use_edm:
             MAX_uniq_aas = max([tr.shape[0] for tr in b_tgt_trs])
@@ -293,14 +310,14 @@ class CaterDataset(torch.utils.data.Dataset):
 
         for batch_idx in range(B):
             cur_len = b_tokens[batch_idx]
-            rows = b_lap_eigens[batch_idx].shape[1]
+            rows = b_node_ids[batch_idx].shape[1]
             p_token_pair_idx[batch_idx, :NC, :cur_len, :] = b_token_pair_idx[batch_idx]
             p_token_pair_time[batch_idx, :NC, :cur_len, :] = b_token_pair_time[batch_idx]
             p_token_types[batch_idx, :NC, :cur_len] = b_token_types[batch_idx]
             p_pad_mask[batch_idx, :NC, :cur_len] = b_pad_mask[batch_idx]
             p_coord_feat[batch_idx, :NC, :cur_len, :] = b_coord_feat[batch_idx]
-            p_idx_in_adj[batch_idx, :NC, :cur_len, :] = b_idx_in_adj[batch_idx]
-            p_lap_eigens[batch_idx, :NC, :rows, :rows] = b_lap_eigens[batch_idx]
+            p_idx_in_lookup[batch_idx, :NC, :cur_len, :] = b_idx_in_lookup[batch_idx]
+            p_node_ids[batch_idx, :NC, :rows, :rows] = b_node_ids[batch_idx]
 
             if self.dataset_cfg.use_edm:
                 num_uniq_aas = b_tgt_trs[batch_idx].shape[0]
@@ -344,8 +361,8 @@ class CaterDataset(torch.utils.data.Dataset):
                 'attr_feats_lookup' : p_attr_feats,                     # B, max_objs_in_batch, 200
                 'coord_feats'       : p_coord_feat,                     # B, num_clip, max_tok_len, 24
                 'times'             : p_token_pair_time[:, :, :, :1],   # B, num_clip, max_tok_len, 1
-                'idx_in_adj'        : p_idx_in_adj,                     # B, num_clip, max_tok_len, 2
-                'n_id_lookup'       : p_lap_eigens,                     # list of torch.Tensor shape [num_clip, clip_len*num_obj]
+                'idx_in_lookup'     : p_idx_in_lookup,                  # B, num_clip, max_tok_len, 2
+                'n_id_lookup'       : p_node_ids,                       # list of torch.Tensor shape [num_clip, clip_len*num_obj]
                 'each_obj_bool'     : each_obj_bool,                    # B, MAX_OBJS_IN_BATCH, NC*MAX_TOKEN_LEN
                 'obj_mask'          : obj_mask                          # B, MAX_OBJS_IN_BATCH
             },

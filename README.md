@@ -1,13 +1,71 @@
 # Spatiotemporal Graph Transformer(STGT)
 
-This is an official PyTorch Implementation of **Compositional Video Understanding with Spatiotemporal Structure-based Transformers (CVPR 2024)** [Paper Link](https://openaccess.thecvf.com/content/CVPR2024/html/Yun_Compositional_Video_Understanding_with_Spatiotemporal_Structure-based_Transformers_CVPR_2024_paper.html)
-, [Project Page](https://wasabipretzel.github.io/ST-GT_project/)
+> This is an official PyTorch Implementation of **Compositional Video Understanding with Spatiotemporal Structure-based Transformers (CVPR 2024)** [Paper Link](https://openaccess.thecvf.com/content/CVPR2024/html/Yun_Compositional_Video_Understanding_with_Spatiotemporal_Structure-based_Transformers_CVPR_2024_paper.html)
+
 ![](fig.png)
 
-## Data & Compositional Generalization Split
-We are currently preparing the content related to the data preprocessing process and the compositional generalization split. It will be released as soon as possible.
+## 1. Environmental Setup
 
-## Citation
+The environments we have tested are as follows:
+> Ubuntu 20.04 | CUDA 11.7 | Python 3.8.17 | Pytorch 1.13.1 | torchvision 0.14.1
+
+#### 1-1. Using the provided env.yaml and conda
+<pre>
+<code>conda env create --file env.yaml
+conda activate STGT</code>
+</pre>
+
+#### 1-2. Using the provided Docker image
+<pre>
+<code># will be updated soon</code>
+</pre>
+
+## 2. Data Preparation
+
+Designed data folder structure is as follows:
+<br>
+<pre>
+<code>root_dir
+└── data
+    ├── cater
+    │   ├── graph
+    │   ├── preproc
+    │   │   ├── dof
+    │   │   ├── feature
+    │   │   ├── metadata
+    │   │   └── target
+    │   ├── raw
+    │   └── splits
+    └── moma
+        ├── graph
+        ├── preproc
+        │   ├── bbox
+        │   ├── feature
+        │   ├── metadata
+        │   └── target
+        ├── raw
+        └── splits
+</code>
+</pre>
+
+
+Through the script below, you can download the preprocessed data that we have prepared (2-1). In the future, we will provide code (2-2) to generate preprocessed data from the raw data.
+
+
+#### 2-1. Download Preprocessed Data
+<pre>
+<code>cd &lt;root_dir&gt;
+bash download.sh</code>
+</pre>
+
+
+#### 2-2. Graph Construction & Data Preprocessing
+<pre>
+<code># will be updated soon</code>
+</pre>
+
+
+## 3. Citation
 ```
 @inproceedings{yun2024compositional,
   title={Compositional Video Understanding with Spatiotemporal Structure-based Transformers},
@@ -18,5 +76,5 @@ We are currently preparing the content related to the data preprocessing process
 }
 ```
 
-## Acknowledgements
+## 4. Acknowledgements
 This work is supported by IITP grant funded by MSIT (Grant No. 2022-0-00264/40%, 2022-0-00612/20%, 2022-0- 00951/20%,) and IITP Artificial Intelligence Graduate School Program for Hanyang University funded by MSIT (Grant No. RS-2020-II201373/20%).

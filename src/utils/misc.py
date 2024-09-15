@@ -155,6 +155,16 @@ def return_none(*args, **kargs):
 def sum_all(*items):
     return sum(items)
 
+def get_wandb(project_name: str, run_name: str, model):
+    import wandb
+    wandb.init(project=project_name)
+    wandb.run.name = run_name
+    wandb.run.save()
+    # wandb.config.update(cfg)
+    wandb.watch(model)
+    return wandb
+
+
 
 def compute_average_precision(groundtruth, predictions, false_negatives=0):
     """

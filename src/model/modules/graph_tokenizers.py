@@ -72,7 +72,7 @@ class CaterGraphTokenizer(nn.Module):
         # shape_idxs = input['shape_idx']
         attr_lookup = inp['attr_feats_lookup'].to(self.device)
         coor_feats = inp['coord_feats'].to(self.device)
-        idx_in_adj = inp['idx_in_adj'].to(self.device)
+        idx_in_lookup = inp['idx_in_lookup'].to(self.device)
         n_id_lookup = inp['n_id_lookup'].to(self.device)
 
         # required shape
@@ -96,8 +96,8 @@ class CaterGraphTokenizer(nn.Module):
 
         # node identifier
         n_id_lookup = n_id_lookup.view(B, NC, N_ID_DIM, N_ID_DIM)
-        idx_in_adj = idx_in_adj.view(B, NC, MAX_TOK_LEN*2, 1).expand(B, NC, MAX_TOK_LEN*2, N_ID_DIM)
-        n_id_feats = torch.gather(n_id_lookup, 2, idx_in_adj.long()).view(B, NC, MAX_TOK_LEN, 2*N_ID_DIM)
+        idx_in_lookup = idx_in_lookup.view(B, NC, MAX_TOK_LEN*2, 1).expand(B, NC, MAX_TOK_LEN*2, N_ID_DIM)
+        n_id_feats = torch.gather(n_id_lookup, 2, idx_in_lookup.long()).view(B, NC, MAX_TOK_LEN, 2*N_ID_DIM)
 
         # type identifier
         t_id_feats = self.type_emb(tok_types.long())
@@ -193,7 +193,7 @@ class MomaGraphTokenizer(nn.Module):
         efeats_lup = inp['efeats_lup'].to(self.device)
         bbox_feats = inp['bbox_feats'].to(self.device)
 
-        idx_in_adj = inp['idx_in_adj'].to(self.device)
+        idx_in_lookup = inp['idx_in_lookup'].to(self.device)
         n_id_lookup = inp['n_id_lookup'].to(self.device)
 
         # required dim
@@ -234,8 +234,8 @@ class MomaGraphTokenizer(nn.Module):
         
         # node identifier
         n_id_lookup = n_id_lookup.view(B, NC, N_ID_DIM, N_ID_DIM)
-        idx_in_adj = idx_in_adj.view(B, NC, MAX_TOK_LEN*2, 1).expand(B, NC, MAX_TOK_LEN*2, N_ID_DIM)
-        n_id_feats = torch.gather(n_id_lookup, 2, idx_in_adj.long()).view(B, NC, MAX_TOK_LEN, 2*N_ID_DIM)
+        idx_in_lookup = idx_in_lookup.view(B, NC, MAX_TOK_LEN*2, 1).expand(B, NC, MAX_TOK_LEN*2, N_ID_DIM)
+        n_id_feats = torch.gather(n_id_lookup, 2, idx_in_lookup.long()).view(B, NC, MAX_TOK_LEN, 2*N_ID_DIM)
         padded_n_id_feats = torch.zeros(B, NC, MAX_TOK_LEN, self.inp_n_id_dim*2).to(n_id_feats.device)
         padded_n_id_feats[:, :, :, :n_id_feats.shape[-1]] = n_id_feats
 

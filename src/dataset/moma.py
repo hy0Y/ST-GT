@@ -26,7 +26,7 @@ class MomaDataset(torch.utils.data.Dataset):
         ):
         super().__init__()
         assert mode in ['train', 'val', 'test']
-        # MOMA -> 8 frames are sampled from the given clip -> FPC == 8
+        # MOMA -> 8 frames are sampled from the given clip -> FPC: 8
         self.dataset_cfg = dataset_cfg
         self.mode = mode
 
@@ -168,11 +168,11 @@ class MomaDataset(torch.utils.data.Dataset):
             )
 
         # moma required..
-        token_t_idx_in_adj = []
+        token_t_idx_in_lookup = []
         for clip_idx, global_time_pairs in enumerate(token_pair_time):
             sampled_frs = metadata['frame_info'][clip_idx]
 
-            token_t_idx_in_adj.append(
+            token_t_idx_in_lookup.append(
                 torch.Tensor(
                     [[sampled_frs.index(_1_t_idx), sampled_frs.index(_2_t_idx)] for _1_t_idx, _2_t_idx in global_time_pairs]
                 )
@@ -205,28 +205,34 @@ class MomaDataset(torch.utils.data.Dataset):
         clip_len = self.dataset_cfg.FPC
         local_max_num_objs = max(num_objs_pc)
         _minus_idx = np.cumsum([0] + num_objs_pc[:-1])
-        idx_in_adj = []
-        for clip_idx, (clip_token_pair_idx, clip_token_pair_time, t_idx_in_adj) in enumerate(zip(token_pair_idx, token_pair_time, token_t_idx_in_adj)):
+        idx_in_lookup = []
+        for clip_idx, (clip_token_pair_idx, clip_token_pair_time, t_idx_in_lookup) in enumerate(zip(token_pair_idx, token_pair_time, token_t_idx_in_lookup)):
 
             _minus = _minus_idx[clip_idx]
             nidx_in_clip = torch.Tensor(clip_token_pair_idx) - 1 - _minus             # 536, 2
 
-            idx_in_adj_clip = nidx_in_clip + local_max_num_objs * t_idx_in_adj
-            idx_in_adj.append(idx_in_adj_clip)
+            idx_in_lookup_clip = nidx_in_clip + local_max_num_objs * t_idx_in_lookup
+            idx_in_lookup.append(idx_in_lookup_clip)
 
-        # NOTE time complexity... TODO to GPU  #clip, 12개 클립중 obj max * FPC, 12개 클립중 obj max * FPC
-        n_ids = torch.from_numpy(np.load(f'{self.dataset_cfg.metadata_dir}/random_gaussian/{vid}.npy'))
+        # NOTE time complexity...  #clip, 12개 클립중 obj max * FPC, 12개 클립중 obj max * FPC
+        # n_ids = torch.from_numpy(np.load(f'{self.dataset_cfg.metadata_dir}/random_gaussian/{vid}.npy'))
+
+        # from random gaussian matrix
+        n_ids = torch.zeros(len(num_objs_pc), self.dataset_cfg.FPC*local_max_num_objs, self.dataset_cfg.FPC*local_max_num_objs)
+        for i, n_obj in enumerate(num_objs_pc):
+            RG_cur_clip = torch.randn(n_obj*self.dataset_cfg.FPC, n_obj*self.dataset_cfg.FPC)
+            Q_cur_clip, _ = torch.linalg.qr(RG_cur_clip)
+            n_ids[i, :n_obj*self.dataset_cfg.FPC, :n_obj*self.dataset_cfg.FPC] = Q_cur_clip
         
         token_pair_idx = pad_sequence(token_pair_idx, batch_first=True, padding_value=0)            # [12, 297, 2]
         token_pair_time = pad_sequence(token_pair_time, batch_first=True, padding_value=0)          # [12, 297, 2]
         token_types = pad_sequence(token_types, batch_first=True, padding_value=0)                  # [12, 297]
 
         pad_mask = pad_sequence(pad_mask, batch_first=True, padding_value=0)                        # [12, 297]
-
         token_eidx_in_lookup = pad_sequence(token_eidx_in_lookup, batch_first=True, padding_value=0)            
 
         bbox_feat = pad_sequence(bbox_feat, batch_first=True, padding_value=0)                      # [12, 297, 8]
-        idx_in_adj = pad_sequence(idx_in_adj, batch_first=True, padding_value=0)                    # [12, 297, 2]
+        idx_in_lookup = pad_sequence(idx_in_lookup, batch_first=True, padding_value=0)                    # [12, 297, 2]
 
         NC_mask = torch.ones(NC)
 
@@ -248,10 +254,10 @@ class MomaDataset(torch.utils.data.Dataset):
 
             'n_feats_lup'     : n_feats,            # 92, 384     -> per video
             'e_feats_lup'     : e_feats,            # 2720, 384   -> per video
-            'bbox_feat'       : bbox_feat,          #     -> per clip
+            'bbox_feat'       : bbox_feat,          #             -> per clip
 
-            'idx_in_adj'      : idx_in_adj,         #       -> per clip
-            'lap_eigens'      : n_ids,              #     -> per clip
+            'idx_in_lookup'      : idx_in_lookup,         #     -> per clip
+            'node_ids'        : n_ids,              #     -> per clip
 
             'target'          : target,
         }
@@ -280,15 +286,15 @@ class MomaDataset(torch.utils.data.Dataset):
         b_e_feats_lup = [data['e_feats_lup'] for data in batch]
         b_bbox_feat = [data['bbox_feat'] for data in batch]
 
-        b_idx_in_adj = [data['idx_in_adj'] for data in batch]
-        b_lap_eigens = [data['lap_eigens'] for data in batch]
+        b_idx_in_lookup = [data['idx_in_lookup'] for data in batch]
+        b_node_ids = [data['node_ids'] for data in batch]
 
         # target
         b_target = [data['target'] for data in batch]
 
         b_NC = [len(_t) for _t in b_NC_mask]
         MAX_NC = max(b_NC)
-        MAX_objsxFPC = max([x.shape[1] for x in b_lap_eigens])
+        MAX_objsxFPC = max([x.shape[1] for x in b_node_ids])
 
         # pad to token dimension
         p_token_pair_idx = torch.zeros(B, MAX_NC, MAX_TOKEN_LEN, 2)
@@ -299,13 +305,13 @@ class MomaDataset(torch.utils.data.Dataset):
 
         p_pad_mask = torch.zeros(B, MAX_NC, MAX_TOKEN_LEN)
         p_bbox_feat = torch.zeros(B, MAX_NC, MAX_TOKEN_LEN, 8)
-        p_idx_in_adj = torch.zeros(B, MAX_NC, MAX_TOKEN_LEN, 2)
+        p_idx_in_lookup = torch.zeros(B, MAX_NC, MAX_TOKEN_LEN, 2)
         p_lap_eigens = torch.zeros(B, MAX_NC, MAX_objsxFPC, MAX_objsxFPC) # NOTE temporally 
 
         for batch_idx in range(B):
             cur_len = b_tokens[batch_idx]
             cur_NC = b_NC[batch_idx]
-            rows = b_lap_eigens[batch_idx].shape[1]
+            rows = b_node_ids[batch_idx].shape[1]
 
             p_token_pair_idx[batch_idx, :cur_NC, :cur_len, :] = b_token_pair_idx[batch_idx]
             p_token_pair_time[batch_idx, :cur_NC, :cur_len, :] = b_token_pair_time[batch_idx]
@@ -315,8 +321,8 @@ class MomaDataset(torch.utils.data.Dataset):
 
             p_pad_mask[batch_idx, :cur_NC, :cur_len] = b_pad_mask[batch_idx]
             p_bbox_feat[batch_idx, :cur_NC, :cur_len, :] = b_bbox_feat[batch_idx]
-            p_idx_in_adj[batch_idx, :cur_NC, :cur_len, :] = b_idx_in_adj[batch_idx]
-            p_lap_eigens[batch_idx, :cur_NC, :rows, :rows] = b_lap_eigens[batch_idx]
+            p_idx_in_lookup[batch_idx, :cur_NC, :cur_len, :] = b_idx_in_lookup[batch_idx]
+            p_lap_eigens[batch_idx, :cur_NC, :rows, :rows] = b_node_ids[batch_idx]
 
         p_n_feats = pad_sequence(b_n_feats_lup, batch_first=True, padding_value=0)
         p_e_feats = pad_sequence(b_e_feats_lup, batch_first=True, padding_value=0)
@@ -333,12 +339,12 @@ class MomaDataset(torch.utils.data.Dataset):
                 'token_types'       : p_token_types,                    # B, num_clip, max_tok_len
                 'pad_mask'          : p_pad_mask,                       # B, num_clip, max_tok_len
 
-                'token_eidx'        : p_token_eidx,                       # B, num_clip, max_tok_len
+                'token_eidx'        : p_token_eidx,                     # B, num_clip, max_tok_len
 
                 'nfeats_lup'        : p_n_feats,                        # B, max_objs_in_batch, 200
                 'efeats_lup'        : p_e_feats,                        # B, max_objs_in_batch, 200
                 'bbox_feats'        : p_bbox_feat,
-                'idx_in_adj'        : p_idx_in_adj,                     # B, num_clip, max_tok_len, 2
+                'idx_in_lookup'        : p_idx_in_lookup,               # B, num_clip, max_tok_len, 2
                 'n_id_lookup'       : p_lap_eigens,                     # list of torch.Tensor shape [num_clip, clip_len*num_obj]
             },
 
